@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="utf-8">
+  <title>Lab 02 PT 02</title>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+</head>
+
+<body>
+  <div class="container">
+    <div class="row">
+      <h2>Boqueirão design 02</h2>
+    </div>
+    <div class="row mychart" id="chart">
+    </div>
+  </div>
+
+  <style>
+    .mychart rect {
+      fill: steelblue;
+    }
+    .mychart rect:hover {
+      fill: goldenrod;
+    }
+    .mychart text {
+      font: 12px sans-serif;
+      text-anchor: left;
+    }
+
+    .circulo {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+  </style>
+
+  <script type="text/javascript">
+    "use strict"
+
+    function desenhaBarras(dados) {
+      // definicoes de altura e largura do svg e da vis dentro
+      var alturaSVG = 400, larguraSVG = 900;
+      var margin = {top: 10, right: 20, bottom:30, left: 45},
+
+      larguraVis = larguraSVG - margin.left - margin.right,
+      alturaVis = alturaSVG - margin.top - margin.bottom;
+
+      /*
+       * Prepara onde adicionaremos a visualizacao
+       */
+      var grafico = d3.select('#chart') // cria elemento <svg> com um <g> dentro
+        .append('svg')
+          .attr('width', larguraVis + margin.left + margin.right)
+          .attr('height', alturaVis + margin.top + margin.bottom)
+        .append('g') // para entender o <g> vá em x03-detalhes-svg.html
+          .attr('transform', 'translate(' +  margin.left + ',' + margin.top + ')');
+
+      // === EDITE DAQUI ===
+      /*
+       * As escalas
+       */
+
+      //var valMax = Math.round(d3.max(dados, (d, i) => d.noventa_percentil));
+      var x = d3.scaleBand()
+                .domain(dados.map(function(d) { return d.mes; }))
+                .range([0,larguraVis])
+                .padding(1);
+
+      var y = d3.scaleLinear()
+                .domain([0, 100])
+                .range( [alturaVis, 0]);
+
+      // === ATÉ DAQUI ===
+
+      /*
+       * As marcas
+       */
+
+      grafico.selectAll('g')
+              .data(dados)
+              .enter()
+              .append('circle')
+                .attr('r', function(d) { return 3; })
+                .attr('cx', function(d) { return x(d.mes); })
+                .attr('cy', function(d) { return y(d.noventa_percentil); })
+                .style('fill', 'blue');
+
+      var circulo = grafico.selectAll('g')
+              .data(dados)
+              .enter()
+              .append('g');
+
+      circulo.append('circle')
+                .style('class', 'circulo')
+                .attr('r', function(d) { return 3; })
+                .attr('cx', function(d) { return x(d.mes); })
+                .attr('cy', function(d) { return y(d.dez_percentil); })
+                .style('fill', 'yellow');
+      /*
+       * Os eixos
+       */
+      grafico.append("g")
+              .attr("class", "x axis")
+              .attr("transform", "translate(0," + alturaVis + ")")
+              .call(d3.axisBottom(x)); // magica do d3: gera eixo a partir da escala
+
+      grafico.append('g')
+              .attr('transform', 'translate(0,0)')
+              .call(d3.axisLeft(y))  // gera eixo a partir da escala
+
+      grafico.append("text")
+        .attr("transform", "translate(-30," + (alturaVis + margin.top)/2 + ") rotate(-90)")
+        .text("Volume em porcentagem");
+
+      grafico.append("text")
+        .attr("transform", "translate(" + (larguraVis)/2 + "," + (alturaVis + margin.bottom)  + ")")
+        .text("Mês do ano");
+
+
+    }
+
+
+    d3.csv('dados/boqueirao-por-mes.csv', function(dados) {
+      console.log("provavelmente acontece depois")
+      desenhaBarras(dados);
+    });
+
+    console.log("provavelmente acontece primeiro") // me apague quando entender.
+    
+    /*
+    * Assim como a função d3.tsv, existe a d3.csv e a d3.json
+    * Em todas, o primeiro parâmetro é uma URL e o segundo a função que
+    * será executada quando o dado for obtido.
+    * >>>>> A chamada ao d3.tsv é assíncrona <<<<<<
+    */
+  </script>
+</body>
+
+</html>

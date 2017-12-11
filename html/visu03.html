@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Visualização 01</title>
+  <title>Visualização 03</title>
 
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
@@ -12,95 +12,169 @@
 <body>
   <div class="container">
     <div class="row">
-      <h2>Homem ou mulher? distribuição entre as pessoas que estão a pé/bicicleta</h2>
+      <h2>Cedo ou tarde? horários onde existe uma maior quantidade de pessoas no local x, y ou z (exibindo quantidade)</h2>
     </div>
     <div class="row mychart" id="chart">
     </div>
   </div>
-
   <style>
-    .axis--x path {
-      display: none;
+    .chart .legend {
+      fill: black;
+      font: 14px sans-serif;
+      text-anchor: start;
+      font-size: 12px;
     }
 
-    .line {
+    .chart text {
+      fill: white;
+      font: 10px sans-serif;
+      text-anchor: end;
+    }
+
+    .chart .label {
+      fill: black;
+      font: 14px sans-serif;
+      text-anchor: end;
+    }
+
+    .bar:hover {
+      fill: brown;
+    }
+
+    .axis path,
+    .axis line {
       fill: none;
-      stroke: steelblue;
-      stroke-width: 1.5px;
+      stroke: #000;
+      shape-rendering: crispEdges;
     }
   </style>
 
-  <svg width="1500" height="500"></svg>
-  <script src="//d3js.org/d3.v4.min.js"></script>
+  <svg class="chart"></svg>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
   <script>
-    var svg = d3.select("svg"),
-        margin = {top: 20, right: 80, bottom: 30, left: 50},
-        width = svg.attr("width") - margin.left - margin.right,
-        height = svg.attr("height") - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    var x = d3.scaleTime().range([0, width]),
-        y = d3.scaleLinear().range([height, 0]),
-        z = d3.scaleOrdinal(d3.schemeCategory10);
+    function desenhaGrafico(data) {
+      var chartWidth       = 300,
+        barHeight        = 20,
+        groupHeight      = barHeight * data.values.length,
+        gapBetweenGroups = 10,
+        spaceForLabels   = 150,
+        spaceForLegend   = 150;
 
-    var line = d3.line()
-        .curve(d3.curveBasis)
-        .x(function(d) { return x(d.horario); })
-        .y(function(d) { return y(d.contagem); });
+      // values = quantidade, series = values e labels = horarios
+      var zippedData = [];
+      for (var i=0; i<data.horarios.length; i++) {
+        for (var j=0; j<data.values.length; j++) {
+          zippedData.push(data.values[j].quantidade[i]);
+        }
+      }
 
-    function desenhaGrafico(dadosBrutos, dadosTratados) {
-      x.domain([new Date(2017, 10, 10, 6, 0), new Date(2017, 10, 10, 21, 0)]);
+      // Color scale
+      var color = d3.scale.category20();
+      var chartHeight = barHeight * zippedData.length + gapBetweenGroups * data.horarios.length;
 
-      y.domain([d3.min(dadosTratados, function(d) { return d3.min(d.values, function(d) { return d.contagem; }); }),
-        d3.max(dadosTratados, function(d) { return d3.max(d.values, function(d) { return d.contagem; }); })]);
+      var x = d3.scale.linear()
+          .domain([0, d3.max(zippedData)])
+          .range([0, chartWidth]);
 
-      z.domain(dadosTratados.map(function(d) { return d.id; }));
+      var y = d3.scale.linear()
+          .range([chartHeight + gapBetweenGroups, 0]);
 
-      g.append("g")
-          .attr("class", "axis axis--x")
-          .attr("transform", "translate(0," + height + ")")
-          .call(d3.axisBottom(x));
+      var yAxis = d3.svg.axis()
+          .scale(y)
+          .tickFormat('')
+          .tickSize(0)
+          .orient("left");
 
-      g.append("g")
-          .attr("class", "axis axis--y")
-          .call(d3.axisLeft(y))
-        .append("text")
-          .attr("transform", "rotate(-90)")
-          .attr("y", 6)
-          .attr("dy", "0.71em")
-          .attr("fill", "#000")
-          .text("Total de pessoas");
+      // Specify the chart area and dimensions
+      var chart = d3.select(".chart")
+          .attr("width", spaceForLabels + chartWidth + spaceForLegend)
+          .attr("height", chartHeight);
 
+      // Create bars
+      var bar = chart.selectAll("g")
+          .data(zippedData)
+          .enter().append("g")
+          .attr("transform", function(d, i) {
+            return "translate(" + spaceForLabels + "," + (i * barHeight + gapBetweenGroups * (0.5 + Math.floor(i/data.values.length))) + ")";
+          });
 
-      var p = g.selectAll(".city")
-        .data(dadosTratados)
-        .enter().append("g")
-          .attr("class", "city");
+      // Create rectangles of the correct width
+      bar.append("rect")
+          .attr("fill", function(d,i) { return color(i % data.values.length); })
+          .attr("class", "bar")
+          .attr("width", x)
+          .attr("height", barHeight - 1);
 
-      p.append("path")
-          .attr("class", "line")
-          .attr("d", function(d) { return line(d.values); })
-          .style("stroke", function(d) { return z(d.id); });
+      // Add text horarios in bar
+      bar.append("text")
+          .attr("x", function(d) { return x(d) - 3; })
+          .attr("y", barHeight / 2)
+          .attr("fill", "red")
+          .attr("dy", ".35em")
+          .text(function(d) { return d; });
 
-      p.append("text")
-          .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
-          .attr("transform", function(d) { return "translate(" + x(d.value.horario) + "," + y(d.value.contagem) + ")"; })
-          .attr("x", 3)
-          .attr("dy", "0.35em")
-          .style("font", "10px sans-serif")
-          .text(function(d) { return d.id; });
-    };
+      // values = quantidade, series = values e labels = horarios
+      // Draw horarios
+      bar.append("text")
+          .attr("class", "label")
+          .attr("x", function(d) { return - 10; })
+          .attr("y", groupHeight / 2)
+          .attr("dy", ".35em")
+          .text(function(d,i) {
+            if (i % data.values.length === 0)
+              return data.horarios[Math.floor(i/data.values.length)];
+            else
+              return ""});
 
-    // TODO: Melhorar o metodo
+      chart.append("g")
+            .attr("class", "y axis")
+            .attr("transform", "translate(" + spaceForLabels + ", " + -gapBetweenGroups/2 + ")")
+            .call(yAxis);
+
+      // Draw legend
+      var legendRectSize = 18,
+          legendSpacing  = 4;
+
+      var legend = chart.selectAll('.legend')
+          .data(data.values)
+          .enter()
+          .append('g')
+          .attr('transform', function (d, i) {
+              var height = legendRectSize + legendSpacing;
+              var offset = -gapBetweenGroups/2;
+              var horz = spaceForLabels + chartWidth + 40 - legendRectSize;
+              var vert = i * height - offset;
+              return 'translate(' + horz + ',' + vert + ')';
+          });
+
+      legend.append('rect')
+          .attr('width', legendRectSize)
+          .attr('height', legendRectSize)
+          .style('fill', function (d, i) { return color(i); })
+          .style('stroke', function (d, i) { return color(i); });
+
+      legend.append('text')
+          .attr('class', 'legend')
+            .attr('x', legendRectSize + legendSpacing)
+            .attr('y', legendRectSize - legendSpacing)
+            .text(function (d) { return d.local; });
+    }
+
     d3.csv("../dados/acude-velho.csv", function(dadosBrutos) {
-      var dadosTratados = [{id: "Homem", values: []}, {id: "Mulher", values: []}];
+      var dados = {horarios: [], values: [{local: 'bobs', quantidade: []}, {local: 'burrinhos', quantidade: []}, {local: 'jackson', quantidade: []}] };
       dadosBrutos.forEach(function(line, index) {
         var date = line['horario_inicial'];
-        dadosTratados[0].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['homens_ciclistas']) + parseInt(line['homens_pedestres'])})
-        dadosTratados[1].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['mulheres_ciclistas']) + parseInt(line['mulheres_pedestres'])})
+        
+        if (line.local == 'bobs') {
+          dados.horarios.push(line['horario_inicial']);
+          dados.values[0].quantidade.push(parseInt(line['total_motorizados']) + parseInt(line['total_ciclistas']) + parseInt(line['total_pedestres']) )
+        }
+        else if (line.local == 'burrinhos') dados.values[1].quantidade.push(parseInt(line['total_motorizados']) + parseInt(line['total_ciclistas']) + parseInt(line['total_pedestres']) )
+        else if (line.local == 'jackson') dados.values[2].quantidade.push(parseInt(line['total_motorizados']) + parseInt(line['total_ciclistas']) + parseInt(line['total_pedestres']) )
+        
       });
-
-      desenhaGrafico(dadosBrutos, dadosTratados);
+      desenhaGrafico(dados)
     });
   </script>
 </body>

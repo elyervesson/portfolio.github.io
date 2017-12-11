@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8">
-  <title>Visualização 01</title>
+  <title>Visualização 02</title>
 
   <script src="https://d3js.org/d3.v4.min.js"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
@@ -12,7 +12,7 @@
 <body>
   <div class="container">
     <div class="row">
-      <h2>Homem ou mulher? distribuição entre as pessoas que estão a pé/bicicleta</h2>
+      <h2>Qual o mais popular? tipo de transporte mais usado em cada horário</h2>
     </div>
     <div class="row mychart" id="chart">
     </div>
@@ -27,6 +27,13 @@
       fill: none;
       stroke: steelblue;
       stroke-width: 1.5px;
+    }
+
+    .legend {
+      padding: 5px;
+      font: 10px sans-serif;
+      background: yellow;
+      box-shadow: 2px 2px 1px #888;
     }
   </style>
 
@@ -82,22 +89,43 @@
           .attr("d", function(d) { return line(d.values); })
           .style("stroke", function(d) { return z(d.id); });
 
-      p.append("text")
-          .datum(function(d) { return {id: d.id, value: d.values[d.values.length - 1]}; })
-          .attr("transform", function(d) { return "translate(" + x(d.value.horario) + "," + y(d.value.contagem) + ")"; })
-          .attr("x", 3)
-          .attr("dy", "0.35em")
-          .style("font", "10px sans-serif")
-          .text(function(d) { return d.id; });
+      // add legend
+      var legend = svg.append("g")
+        .attr("class", "legend")
+
+      legend.selectAll('text')
+        .data(["#1f77b4","#ff7f0e","#d62728","#2ca02c","#8c564b","#9467bd"])
+        .enter()
+        .append("rect")
+        .attr("x", width-margin.right)
+        .attr("y", function(d, i){ return i *  20;})
+        .attr("width", 10)
+        .attr("height", 10)
+        .style("fill", function(d) {
+          return d;
+        })
+
+      legend.selectAll('text')
+        .data(["Carros", "Motos", "Caminhões","Onibus", "Ciclistas", "Pedestres"])
+        .enter()
+      .append("text")
+      .attr("x", width-margin.right + 25)
+      .attr("y", function(d, i){ return i *  20 + 9;})
+      .text(function(d){return d});
     };
 
     // TODO: Melhorar o metodo
     d3.csv("../dados/acude-velho.csv", function(dadosBrutos) {
-      var dadosTratados = [{id: "Homem", values: []}, {id: "Mulher", values: []}];
+      var dadosTratados = [{id: "Carros", values: []}, {id: "Motos", values: []}, {id: "Onibus", values: []}, {id: "Caminhoes", values: []}, {id: "Ciclistas", values: []}, {id: "Pedestres", values: []}];
       dadosBrutos.forEach(function(line, index) {
         var date = line['horario_inicial'];
-        dadosTratados[0].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['homens_ciclistas']) + parseInt(line['homens_pedestres'])})
-        dadosTratados[1].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['mulheres_ciclistas']) + parseInt(line['mulheres_pedestres'])})
+        dadosTratados[0].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['carros'])})
+        dadosTratados[1].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['motos'])})
+        dadosTratados[2].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['onibus'])})
+        dadosTratados[3].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['caminhoes'])})
+
+        dadosTratados[4].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['total_ciclistas'])})
+        dadosTratados[5].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['total_pedestres'])})
       });
 
       desenhaGrafico(dadosBrutos, dadosTratados);

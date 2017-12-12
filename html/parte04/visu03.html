@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="utf-8">
+  <title>Visualização 03</title>
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+</head>
+
+<body>
+  <style>
+    .chart .legend {
+      fill: black;
+      font: 14px sans-serif;
+      text-anchor: start;
+      font-size: 12px;
+    }
+
+    .chart text {
+      fill: white;
+      font: 10px sans-serif;
+      text-anchor: end;
+    }
+
+    .chart .label {
+      fill: black;
+      font: 14px sans-serif;
+      text-anchor: end;
+    }
+
+    .bar:hover {
+      fill: brown;
+    }
+
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+  </style>
+
+  <div class="container">
+    <div class="row">
+      <h3>Cedo ou tarde? horários onde existe uma maior quantidade de pessoas nos locais analisados (exibindo quantidade)</h3>
+    </div>
+
+    <div class="row">
+        Nesta visualização podemos observar para cada um dos horários entre 06:00 e 20:45 de um determinado dia, a movimentação em torno do açude velho em cada 3 pontos diferentes
+      (Bobs, Monumento ao Sesquicentenário  ou Monumento Jackson do Pandeiro).
+        Como podemos observar, o fluxo se mantém bastante constante ao longo do dia, reduzindo a partir das 18:00.
+        (OBS: não há dados para o Monumento ao Sesquicentenário de 06:00 as 06:15)
+    </div>
+    </br >
+
+    <div class="row">
+      <svg class="chart"></svg>
+
+      <script src="//d3js.org/d3.v3.min.js"></script>
+      <script>
+
+        function desenhaGrafico(data) {
+          var chartWidth       = 400,
+            barHeight        = 10,
+            groupHeight      = barHeight * data.values.length,
+            gapBetweenGroups = 15,
+            spaceForLabels   = 250,
+            spaceForLegend   = 250;
+
+          // values = quantidade, series = values e labels = horarios
+          var zippedData = [];
+          for (var i=0; i<data.horarios.length; i++) {
+            for (var j=0; j<data.values.length; j++) {
+              zippedData.push(data.values[j].quantidade[i]);
+            }
+          }
+
+          // Color scale
+          var color = d3.scale.category20();
+          var chartHeight = barHeight * zippedData.length + gapBetweenGroups * data.horarios.length;
+
+          var x = d3.scale.linear()
+              .domain([0, d3.max(zippedData)])
+              .range([0, chartWidth]);
+
+          var y = d3.scale.linear()
+              .range([chartHeight + gapBetweenGroups, 0]);
+
+          var yAxis = d3.svg.axis()
+              .scale(y)
+              .tickFormat('')
+              .tickSize(0)
+              .orient("left");
+
+          // Specify the chart area and dimensions
+          var chart = d3.select(".chart")
+              .attr("width", spaceForLabels + chartWidth + spaceForLegend)
+              .attr("height", chartHeight);
+
+          // Create bars
+          var bar = chart.selectAll("g")
+              .data(zippedData)
+              .enter().append("g")
+              .attr("transform", function(d, i) {
+                return "translate(" + spaceForLabels + "," + (i * barHeight + gapBetweenGroups * (0.5 + Math.floor(i/data.values.length))) + ")";
+              });
+
+          // Create rectangles of the correct width
+          bar.append("rect")
+              .attr("fill", function(d,i) { return color(i % data.values.length); })
+              .attr("class", "bar")
+              .attr("width", x)
+              .attr("height", barHeight - 1);
+
+          // Add text horarios in bar
+          bar.append("text")
+              .attr("x", function(d) { return x(d) - 3; })
+              .attr("y", barHeight / 2)
+              .attr("fill", "red")
+              .attr("dy", ".35em")
+              .text(function(d) { return d; });
+
+          // values = quantidade, series = values e labels = horarios
+          // Draw horarios
+          bar.append("text")
+              .attr("class", "label")
+              .attr("x", function(d) { return - 10; })
+              .attr("y", groupHeight / 2)
+              .attr("dy", ".35em")
+              .text(function(d,i) {
+                if (i % data.values.length === 0)
+                  return data.horarios[Math.floor(i/data.values.length)];
+                else
+                  return ""});
+
+          chart.append("g")
+                .attr("class", "y axis")
+                .attr("transform", "translate(" + spaceForLabels + ", " + -gapBetweenGroups/2 + ")")
+                .call(yAxis);
+
+          // Draw legend
+          var legendRectSize = 18,
+              legendSpacing  = 4;
+
+          var legend = chart.selectAll('.legend')
+              .data(data.values)
+              .enter()
+              .append('g')
+              .attr('transform', function (d, i) {
+                  var height = legendRectSize + legendSpacing;
+                  var offset = -gapBetweenGroups/2;
+                  var horz = spaceForLabels + chartWidth + 40 - legendRectSize;
+                  var vert = i * height - offset;
+                  return 'translate(' + horz + ',' + vert + ')';
+              });
+
+          legend.append('rect')
+              .attr('width', legendRectSize)
+              .attr('height', legendRectSize)
+              .style('fill', function (d, i) { return color(i); })
+              .style('stroke', function (d, i) { return color(i); });
+
+          legend.append('text')
+              .attr('class', 'legend')
+                .attr('x', legendRectSize + legendSpacing)
+                .attr('y', legendRectSize - legendSpacing)
+                .text(function (d) { return d.local.charAt(0).toUpperCase() + d.local.slice(1) });
+        }
+
+        d3.csv("../../dados/acude-velho.csv", function(dadosBrutos) {
+          var dados = {horarios: [], values: [{local: 'bobs', quantidade: []}, {local: 'burrinhos', quantidade: []}, {local: 'jackson', quantidade: []}] };
+          dadosBrutos.forEach(function(line, index) {
+            var date = line['horario_inicial'];
+            
+            if (line.local == 'bobs') {
+              dados.horarios.push(line['horario_inicial']);
+              dados.values[0].quantidade.push(parseInt(line['total_motorizados']) + parseInt(line['total_ciclistas']) + parseInt(line['total_pedestres']) )
+            }
+            else if (line.local == 'burrinhos') dados.values[1].quantidade.push(parseInt(line['total_motorizados']) + parseInt(line['total_ciclistas']) + parseInt(line['total_pedestres']) )
+            else if (line.local == 'jackson') dados.values[2].quantidade.push(parseInt(line['total_motorizados']) + parseInt(line['total_ciclistas']) + parseInt(line['total_pedestres']) )
+            
+          });
+          desenhaGrafico(dados)
+        });
+      </script>
+
+    </div>
+  </div>
+
+</body>
+</html>

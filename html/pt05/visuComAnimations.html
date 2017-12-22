@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+  <meta charset="utf-8">
+  <title>Visualização Com Animações</title>
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+</head>
+
+<body>
+  <style>
+    .axis--x path {
+      display: none;
+    }
+
+    .line {
+      fill: none;
+      stroke: steelblue;
+      stroke-width: 1.5px;
+    }
+
+    #tooltip {
+		position: absolute;
+		width: auto;
+		height: auto;
+		padding: 10px;
+		background-color: #D3F6DB;
+		border-radius: 10px;
+	}
+
+	#tooltip.hidden {
+		display: none;
+	}
+
+	#tooltip p {
+		margin: 0;
+		font-family: sans-serif;
+		font-size: 12px;
+		line-height: 20px;
+	}
+
+	.select-mini {
+	  font-size: 14px;
+	  height: 30px;
+	  width: 200px;
+	}
+  </style>
+
+  <div class="container">
+    <div class="row">
+      <h3>Homem ou mulher? Qual distribuição entre as pessoas que estão a pé/bicicleta</h3>
+    </div>
+
+    <div class="row">
+          Nesta visualização podemos observar a quantidade de homens e mulheres que passam por uma das 3 áreas do açude velho (Bobs, Monumento ao Sesquicentenário ou 
+        Monumento Jackson do Pandeiro) ao longo de um dia, foram consideradas na visualização, pessoas a pé ou de bicicleta.</ br>
+          Como podemos observar,  o público masculino em sempre maior, além disso, os horários de pico são na parte da manhã, próximo às 6:30 e no final da tarde, 
+        próximo às 5:30.
+
+    </div>
+
+    <div id="tooltip" class="hidden">
+        <p id="titulo_tooltip"></p>
+		<p><b id="value1">0</b></p>
+		<p><b id="value2">0</b></p>
+	</div>
+
+    </br >
+    
+    <div class="row">
+	<div class="form-group">
+		<label for="sel1">Horarios disponiveis: </label>
+		<select class="form-control select-mini" id="sel1">
+			<option>6</option>
+			<option>7</option>
+			<option>8</option>
+			<option>9</option>
+			<option>10</option>
+			<option>11</option>
+			<option>12</option>
+			<option>13</option>
+			<option>14</option>
+			<option>15</option>
+			<option>16</option>
+			<option>17</option>
+			<option>18</option>
+			<option>19</option>
+			<option>20</option>
+			<option>21</option>
+		</select>
+
+		<div class="select-mini"> 
+	  		<label class="radio-inline"><input type="radio" name="optradio" value="0" checked>Homens</label>
+			<label class="radio-inline"><input type="radio" name="optradio" value="1">Mulheres</label>
+		</div>
+
+		<button class="btn btn-secondary" id="botao">
+	   		Exibir detalhes
+		</button>
+	</div>
+
+      <svg width="1200" height="700"></svg>
+
+      <script src="//d3js.org/d3.v4.min.js"></script>
+      <script>
+        var svg = d3.select("svg"),
+            margin = {top: 20, right: 80, bottom: 30, left: 50},
+            width = svg.attr("width") - margin.left - margin.right,
+            height = svg.attr("height") - margin.top - margin.bottom,
+            g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var x = d3.scaleTime().range([0, width]),
+            y = d3.scaleLinear().range([height, 0]),
+            z = d3.scaleOrdinal(d3.schemeCategory10);
+
+        var line = d3.line()
+            .curve(d3.curveBasis)
+            .x(function(d) { return x(d.horario); })
+            .y(function(d) { return y(d.contagem); });
+
+        function desenhaGrafico(dadosBrutos, dadosTratados) {
+          x.domain([new Date(2017, 10, 10, 6, 0), new Date(2017, 10, 10, 21, 0)]);
+
+          y.domain([d3.min(dadosTratados, function(d) { return d3.min(d.valuesSumarized, function(d) { return d.contagem; }); }),
+            d3.max(dadosTratados, function(d) { return d3.max(d.valuesSumarized, function(d) { return d.contagem; }); })]);
+
+          z.domain(dadosTratados.map(function(d) { return d.id; }));
+
+          g.append("g")
+              .attr("class", "axis axis--x")
+              .attr("transform", "translate(0," + height + ")")
+              .call(d3.axisBottom(x));
+
+          g.append("g")
+              .attr("class", "axis axis--y")
+              .call(d3.axisLeft(y))
+            .append("text")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 6)
+              .attr("dy", "0.71em")
+              .attr("fill", "#000")
+              .text("Total de pessoas");
+
+
+          var p = g.selectAll(".genre")
+            .data(dadosTratados)
+            .enter().append("g")
+              .attr("class", "genre");
+
+          p.append("path")
+              .attr("class", "line")
+              .attr("d", function(d) { return line(d.valuesSumarized); })
+              .style("stroke", function(d) { return z(d.id); })
+              .style("stroke-width", 3);
+
+          p.append("text")
+              .datum(function(d) { return {id: d.id, value: d.valuesSumarized[d.valuesSumarized.length - 1]}; })
+              .attr("transform", function(d) { return "translate(" + x(d.value.horario) + "," + y(d.value.contagem) + ")"; })
+              .attr("x", 4)
+              .attr("dy", "0.35em")
+              .style("font", "10px sans-serif")
+              .text(function(d) { return d.id; });
+
+
+	      //Extra
+		  p.on("mouseover", function(d, i) { 
+		  	d3.select("#tooltip")
+  						.style("left", (d3.event.pageX - 50) + "px")
+  						.style("top", d3.event.pageY + "px")
+  						.select("#value1")
+  						.text(d.extraInfo[0]);
+
+  			d3.select("#tooltip")
+  						.style("left", (d3.event.pageX - 50) + "px")
+  						.style("top", d3.event.pageY + "px")
+  						.select("#value2")
+  						.text(d.extraInfo[1]);
+
+            d3.select("#tooltip #titulo_tooltip")
+              .text("Informações gerais sobre " + d.id)
+              .style("font-weight", "bold");
+
+  			d3.select("#tooltip").classed("hidden", false);
+  		  });
+
+		  p.on("mouseout", function(d, i) { d3.select("#tooltip").classed("hidden", true); });
+
+
+	      // monstrinho
+		  d3.select("#botao")
+		    .on("click", function(d){
+
+var svg = d3.select("svg");
+svg.selectAll(".extra").remove();
+
+		      var e = document.getElementById("sel1");
+		      var radios = document.getElementsByName('optradio');
+
+
+
+	          var index = 0; // 0 para homens e 1 para mulher
+	          for (var i = 0, length = radios.length; i < length; i++) {
+				if (radios[i].checked){
+				index = parseInt(radios[i].value);
+				break;
+				}
+			  }
+
+	          var horario = parseInt(e.options[e.selectedIndex].value); // de 6 horas da manha ate 21 horas da noite
+	          var select = [];
+
+	          dadosTratados[index].values.forEach(function(line, index) {
+	          		if(line.horario.getHours() == horario){
+	          			select.push(line)
+	          		}
+	          });
+
+	          var w = 5;
+	          var h = 10;
+	          var controller = 0;
+
+	         var b = g.selectAll(".bar")
+			    .data(select)
+			    .enter().append("rect")
+			      .attr("class", "bar")
+
+			  b.attr("x", function(d) { controller++; return h * controller + 100})
+			  	  .attr("class", "extra")
+			      .attr("y", function(d) { return 350 - d.contagem })
+			      .attr("width", function(d) { return w })
+			      .attr("height", function(d) { return d.contagem}) //height - y(d.contagem)
+			      .style("fill", function(d) {
+			      	if (d.local == "bobs") return "blue"
+			      	if (d.local == "burrinhos") return "green"
+			      	if (d.local == "jackson") return "pink"
+			      });
+
+			  g.append("g")
+		          .attr("class", "axis axis--y")
+		          .call(d3.axisLeft(y))
+		        .append("text")	
+		          .attr("x", 250)
+		          .attr("y", 365)
+		          .attr("fill", "#000")
+		          .attr("class", "extra")
+		          .text("distribuição de pessoas nos 3 locais");
+
+			  b.on("mouseover", function(d, i) { 
+			  	d3.select("#tooltip")
+	  						.style("left", (d3.event.pageX - 50) + "px")
+	  						.style("top", d3.event.pageY + "px")
+	  						.select("#value1")
+	  						.text("Horario: " + d.horario.getHours() + "h:" + d.horario.getMinutes());
+
+	  			d3.select("#tooltip")
+	  						.style("left", (d3.event.pageX - 50) + "px")
+	  						.style("top", d3.event.pageY + "px")
+	  						.select("#value2")
+	  						.text("Total de pessoas: " + d.contagem);
+
+	            d3.select("#tooltip #titulo_tooltip")
+	              .text("Contagem de pessoas")
+	              .style("font-weight", "bold");
+
+	  			d3.select("#tooltip").classed("hidden", false);
+	  		  });   
+
+			  b.on("mouseout", function(d, i) { d3.select("#tooltip").classed("hidden", true); });
+
+			  // Draw legend
+	          var legendRectSize = 18,
+	              legendSpacing  = 4;
+
+	          var chartWidth       = 400,
+	              barHeight        = 10,
+	              groupHeight      = barHeight * 3,
+	              gapBetweenGroups = 15,
+	              spaceForLabels   = 250,
+	              spaceForLegend   = 250;
+
+	          var color = ["blue", "green", "pink"]
+
+	          var legend = g.selectAll('.legend')
+	              .data(["Bobs", "Burrinhos", "Jackson"])
+	              .enter()
+	              .append('g')
+	              .attr("class", "extra")
+	              .attr("transform", function(d, i) {
+	                return "translate(" + spaceForLabels + "," + (i * barHeight + gapBetweenGroups * (5 + Math.floor(i/1))) + ")";
+	              });
+
+	          legend.append('rect')
+	              .attr('width', legendRectSize)
+	              .attr('height', legendRectSize)
+	              .style('fill', function (d, i) { return color[i]; })
+	              .style('stroke', function (d, i) { return color[i]; });
+
+	          legend.append('text')
+	              .attr('class', 'legend')
+	                .attr('x', legendRectSize + legendSpacing)
+	                .attr('y', legendRectSize - legendSpacing)
+	                .text(function (d) { return d });
+		 
+		 });    
+        };
+
+        // TODO: Melhorar o metodo
+        d3.csv("../../dados/acude-velho.csv", function(dadosBrutos) {
+          var dadosTratados = [{id: "Homem", values: [], local: ""}, {id: "Mulher", values: [], local: ""}];
+          dadosBrutos.forEach(function(line, index) {
+            var date = line['horario_inicial'];
+            dadosTratados[0].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['homens_ciclistas']) + parseInt(line['homens_pedestres']), local: line.local})
+            dadosTratados[1].values.push( {horario: new Date(2017, 10, 10, date.substring(0,2), date.substring(3,5)), contagem: parseInt(line['mulheres_ciclistas']) + parseInt(line['mulheres_pedestres']), local: line.local})
+          });
+
+          var countHomem = d3.nest()
+						    .key(d => d.horario)
+						    .rollup(v => v.reduce(function(a, b) {return a + b.contagem;}, 0))
+						    .entries(dadosTratados[0].values)
+
+          var countMulher = d3.nest()
+						    .key(d => d.horario)
+						    .rollup(v => v.reduce(function(a, b) {return a + b.contagem;}, 0))
+						    .entries(dadosTratados[1].values)
+
+		  var valuesSumarized = [];
+          countHomem.reduce(function(extra, value){valuesSumarized.push({'horario': new Date(value.key), 'contagem': value.value})}, 0)
+          dadosTratados[0].valuesSumarized = valuesSumarized;
+          dadosTratados[0].extraInfo = geraInfo(valuesSumarized.slice())
+
+          valuesSumarized = [];
+          countMulher.reduce(function(extra, value){valuesSumarized.push({'horario': new Date(value.key), 'contagem': value.value})}, 0)
+          dadosTratados[1].valuesSumarized = valuesSumarized;
+ 			dadosTratados[1].extraInfo = geraInfo(valuesSumarized.slice())
+
+          desenhaGrafico(dadosBrutos, dadosTratados);
+        });
+
+  		function geraInfo(data) {
+			var info;
+			data.sort(function(first, second) {	
+		    	return second.contagem - first.contagem;
+			});
+
+			return [
+				["Horario 01: "+ data[0].horario.getHours() + "h:" + data[0].horario.getMinutes() + "m, " +
+			 "horario 02: "+ data[1].horario.getHours() + "h:" + data[1].horario.getMinutes() + "m, " +
+			 "horario 03: "+ data[2].horario.getHours() + "h:" + data[2].horario.getMinutes() + "m"],
+			 ["Total 01: "+ data[0].contagem + ", Total 02: "+ data[1].contagem + ", Total 03: "+ data[2].contagem]];
+		}
+
+
+      </script>
+    
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+		<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+		<link rel="icon" href="/favicon.ico" type="image/x-icon">
+		<link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto+Slab" rel="stylesheet">
+		<link href="../../css/bootstrap.min.css" rel="stylesheet">
+		<link href="../../css/main.css" rel="stylesheet">
+		<link href="../../css/fonts.css" rel="stylesheet">
+
+		<title>D3</title>
+
+		<style>
+			.node {
+				fill: #ccc;
+				stroke: #fff;
+				stroke-width: 1px;
+			}
+			.link {
+				stroke: black;
+				stroke-opacity: 0.1;
+			}
+		</style>
+		</head>
+	<body>
+		<div class="container">
+			<header>
+				<h1>Bandas relacionadas a Hozen</h1>
+			</header>
+
+			<div class="section">
+				<div class="row">
+					No grafo abaixo estão sendo exibidas todas as ligações entre a banda Hozen e outros encontradas pelo spotify
+				</div>
+			</div>
+
+			<div id="chart">	
+			</div>
+		</div>
+
+		<footer></footer>
+		<script src="../../js/d3.v4.min.js"></script>
+		<script>
+			var width = 3000, height = 3000;
+
+			var svg = d3.select("#chart")
+				.append("svg")
+				.attr('version', '1.1')
+				.attr('viewBox', '0 0 '+width+' '+height)
+				.attr('width', '100%');
+
+			var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+			var simulation = d3.forceSimulation()
+				.force("link", d3.forceLink().id(function(d) { return d.id; }))
+				.force("charge", d3.forceManyBody())
+				.force("center", d3.forceCenter(width / 2, height / 2));
+
+			d3.json("hozen.json", function(error, graph) {
+				if (error) throw error;
+				
+				var link = svg.append("g")
+						.attr("class", "link")
+					.selectAll("line")
+						.data(graph.edges)
+					.enter().append("line");
+
+				var node = svg.append("g")
+						.attr("class", "nodes")
+					.selectAll("circle")
+						.data(graph.nodes)
+					.enter().append("circle")
+						.attr("r", function(d) { return d.size/5; })
+						.attr("fill", function(d) { if (d.id === "2CnIQjA5rvfvIbxSiRUsQD") { return "#FF0000"}; return "#3299CC"; })
+						.call(d3.drag()
+							.on("start", dragstarted)
+							.on("drag", dragged)
+							.on("end", dragended));
+
+				node.append("title")
+					.text(function(d) { return d.label; });
+
+				simulation
+					.nodes(graph.nodes)
+					.on("tick", ticked);
+
+				simulation.force("link")
+					.links(graph.edges);
+
+				function ticked() {
+					link
+						.attr("x1", function(d) { return d.source.x; })
+						.attr("y1", function(d) { return d.source.y; })
+						.attr("x2", function(d) { return d.target.x; })
+						.attr("y2", function(d) { return d.target.y; });
+					node
+						.attr("cx", function(d) { return d.x; })
+						.attr("cy", function(d) { return d.y; });
+				}
+			});
+
+			function dragstarted(d) {
+				if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+				d.fx = d.x;
+				d.fy = d.y;
+			}
+
+			function dragged(d) {
+				d.fx = d3.event.x;
+				d.fy = d3.event.y;
+			}
+
+			function dragended(d) {
+				if (!d3.event.active) simulation.alphaTarget(0);
+				d.fx = null;
+				d.fy = null;
+			}
+		</script>
+	</body>
+</html>
